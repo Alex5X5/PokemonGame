@@ -29,6 +29,7 @@ class GameService:
         if not self.player:
             player_name:str = input("enter your player name")
             self.player = self.db_service.load_trainer(player_name)
+            print(self.player)
         if len(self.player.pokemons) == 0:
             self.player.pokemons.append(self.regristry_service.starter_pokemon_type(self.player))
             self.db_service.insert_or_update_trainer(self.player)

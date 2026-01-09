@@ -36,7 +36,8 @@ class DbService:
         return Trainer.from_dictionary(data[0])
 
     def insert_or_update_trainer(self, trainer:Trainer):
-        self.execute_raw(f"INSERT OR IGNORE INTO Trainers WHERE Id={trainer.id} (Name) VALUES ({trainer.name}); UPDATE Trainers SET Name = {trainer.name} WHERE Id={trainer.id}")
+        self.execute_raw(f"INSERT OR IGNORE INTO Trainers (Name, Id) VALUES ('{trainer.name}', {trainer.id})")
+        self.execute_raw(f"UPDATE Trainers SET Name='{trainer.name}' WHERE Id={trainer.id}")
 
     def create_trainer(self, trainer: Trainer) -> None:
         raise NotImplementedError
