@@ -6,11 +6,11 @@ from Logic.Models.Pokemons.Pokemon import Pokemon
 
 class Gengar(Pokemon):
 
-    def __init__(self, owner):
+    def __init__(self):
         super().__init__(
             Ghost(),
             Poison(),
             110,
             110,
-            Punch(owner)
+            Punch(self)
         )

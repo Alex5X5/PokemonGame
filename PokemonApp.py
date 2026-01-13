@@ -13,7 +13,7 @@ class PokemonApp:
 
         self.registry_service:RegistryService = RegistryService()
         self.path_service:PathService = PathService()
-        self.database_service:DbService = DbService(self.path_service)
+        self.database_service:DbService = DbService(self.path_service, self.registry_service)
         self.game_service:GameService = GameService(self.registry_service, self.database_service)
         self.game_service.game_loop()
 

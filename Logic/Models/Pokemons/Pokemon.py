@@ -1,10 +1,10 @@
-from copy import copy
 import math
-from typing import Any
+from typing import Any, Final
 
 from Logic.Models.Attacks.Attack import *
 from Logic.Models.Elements.Element import Element
-from Logic.Models.Modifiers import Modifier
+from Logic.Models.Modifiers.Modifier import Modifier
+
 
 class Pokemon:
 
@@ -19,61 +19,75 @@ class Pokemon:
             attack3:Attack | None = None,
             experience=0.0):
         self.__element1:Element = element1
-        self.__element2:Element or None = element2
-        self.__max_health:float = max_health
+        self.__element2:Element | None = element2
+        self.__max_health:Final[float] = max_health
         self.__health:float = health
-        self.attack1:Attack = attack1
-        self.attack2:Attack | None = attack2
-        self.attack3:Attack | None = attack3
+        self.__attack1:Attack = attack1
+        self.__attack2:Attack | None = attack2
+        self.__attack3:Attack | None = attack3
         self.__experience:float = experience
         self.modifiers:list[Modifier] = []
 
-    @classmethod
-    def from_dictionary(cls, data:dict[str, Any]):
-        new_logger = cls.__new__(cls)
-        return new_logger
+    def __str__(self):
+        return f"<Logic.Models.Pokemons.Pokemon.Pokemon[Element1={self.Element1}, Element2={self.Element2}, Max Health={self.__max_health}, Health={self.__health}, Experience={self.__experience}]>"
+
+    def display_str(self):
+        return f"[{self.Level}]{self.__class__.__name__}"
+
+    def set_from_dictionary(self, data:dict[str, Any]):
+        from Logic.Services.DbService import DbService
+        self.__experience = data.get(DbService.POKEMON_EXPERIENCE_KEY)
 
     @property
-    def element1(self):
-        return self.__element1
+    def Max_Health(self) -> float:
+        return math.floor(self.__max_health * self.Level) + self.Level + 10
 
     @property
-    def element2(self):
-        return self.__element2
+    def Health(self) -> float: return self.__health
+
+    @Health.setter
+    def Health(self, value:float): self.__health = max(min(value, self.Max_Health), 0)
 
     @property
-    def experience(self) -> float:
-        return self.__experience
-
-    @experience.setter
-    def __set_eperience(self, value):
-        self.__experience = value
+    def Element1(self) -> Element: return self.__element1
 
     @property
-    def level(self) -> int:
-        return int(math.floor(50*(math.log((self.experience*99+10000)/10000, 10))))
+    def Element2(self) -> Element | None: return self.__element2
 
     @property
-    def max_health(self) -> float:
-        return math.floor(self.__max_health * self.level) + self.level + 10
+    def Experience(self) -> float: return self.__experience
+
+    @Experience.setter
+    def Experience(self, value:float): self.__experience = value
 
     @property
-    def health(self) -> float:
-        return self.__health
+    def Attack1(self) -> Attack: return self.__attack1
 
-    @health.setter
-    def set_health(self, value:float):
-        self.__health = value
+    @property
+    def Attack2(self) -> Attack | None: return self.__attack2
 
-    @experience.setter
-    def set_experience(self, value:float):
-        self.__experience = value
+    @property
+    def Attack3(self) -> Attack | None: return self.__attack3
+
+    @property
+    def Level(self) -> int:
+        return int(math.floor(50 * (math.log((self.Experience * 99 + 10000) / 10000, 10))))
+
+    def has_attack2(self) -> bool:
+        return self.__attack2 is not None and self.Level > 10
+
+    def has_attack3(self) -> bool:
+        return self.__attack3 is not None and self.Level > 30
+
+    def is_down(self) -> bool:
+        return self.Health == 0.0
 
     def execute_attack_1(self, target:'Pokemon'):
-        pass
+        self.__attack1.execute(target)
 
     def execute_attack_2(self, target:'Pokemon'):
-        pass
+        self.__attack2.execute(target)
 
     def execute_attack_3(self, target:'Pokemon'):
-        pass
+        self.__attack3.execute(target)
+

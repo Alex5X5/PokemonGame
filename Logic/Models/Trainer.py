@@ -10,22 +10,28 @@ class Trainer:
         self.__name:str = name
         self.__owned_pokemons:list[Pokemon] = []
 
+    def __str__(self):
+        return f"Logic.Models.Trainer.Trainer[Id={self.Id}, Name={self.Name}, Pokemons=[{','.join([str(p) for p in self.__owned_pokemons])}]]"
+
     @property
-    def id(self)->int:
+    def Id(self) -> int:
         return self.__id
 
     @property
-    def name(self)->int:
+    def Name(self) -> str:
         return self.__name
+
+    @property
+    def Reputiation(self) -> float:
+        return round(1000 - 400000 / (sum([p.Level for p in self.__owned_pokemons]) + 400), 1)
 
     @property
     def pokemons(self) -> list[Pokemon] | None:
         return self.__owned_pokemons
 
     @classmethod
-    def from_dictionary(cls, data:dict[str, Any]):
+    def from_dictionary(cls, data:dict[str, Any]) -> 'Trainer':
         new_trainer = cls.__new__(cls)
-        print(data)
         new_trainer.__init__(data['Id'], data['Name'])
-
         return new_trainer
+

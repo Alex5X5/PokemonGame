@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 import pathlib
 from shutil import copyfile
 
@@ -10,10 +11,10 @@ class PathService:
         self.bundled_app_files_path_string: str = os.path.join(sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '\\'
         self.app_files_path_string: str = self.root_path_string + 'pokemon-game-files\\'
         self.assets_path_string: str = self.bundled_app_files_path_string + 'Assets\\'
-        print('root path:' + self.root_path_string)
-        print('bundled app files path:' + self.bundled_app_files_path_string)
-        print('app files path:' + self.app_files_path_string)
-        print('assets path:' + self.assets_path_string)
+        #print('root path:' + self.root_path_string)
+        #print('bundled app files path:' + self.bundled_app_files_path_string)
+        #print('app files path:' + self.app_files_path_string)
+        #print('assets path:' + self.assets_path_string)
 
     def gen_app_files(self):
         """
@@ -34,7 +35,3 @@ class PathService:
             :return: a string representing the path
         """
         return os.path.join(self.assets_path_string, relative_asset_path)
-
-
-s = PathService()
-print(s.assets_path('test.png'))

@@ -1,6 +1,9 @@
 
 class Modifier:
 
+    def __init__(self):
+        pass
+
     def modify_damage_entity(self, pokemon:'Pokemon', damage:float) -> float:
         return damage
 
