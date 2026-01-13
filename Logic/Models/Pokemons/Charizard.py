@@ -6,11 +6,12 @@ from Logic.Models.Elements.Fire import Fire
 
 class Charizard(Pokemon):
 
-    def __init__(self):
+    def __init__(self, id:int):
         super().__init__(
+            id,
             Fire(),
             Water(),
             120,
-            100,
+            120,
             FireBreath(self)
         )

@@ -10,6 +10,7 @@ class AttackEvent:
         self.is_blocked:bool = False
 
 
+
 class Attack(ABC):
 
     def __init__(
@@ -21,7 +22,7 @@ class Attack(ABC):
 
     @property
     def Power(self) -> float:
-        return self.__power * self.__executor.Level / 2
+        return self.__power * (self.__executor.Level / 2 + 1)
 
     def display_str(self):
         return f"{self.__class__.__name__}"
@@ -39,8 +40,9 @@ class Attack(ABC):
 
     @abstractmethod
     def on_attack(self, event:AttackEvent):
-        pass
+        print(event.damage)
+        event.victim.Health = event.victim.Health - event.damage
 
     @abstractmethod
     def on_post_attack(self, event:AttackEvent):
-        event.victim.Health = event.victim.Health - event.damage
+        event.attacker.Experience += event.damage / 5

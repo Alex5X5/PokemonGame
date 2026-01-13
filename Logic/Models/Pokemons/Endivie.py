@@ -5,8 +5,9 @@ from Logic.Models.Pokemons.Pokemon import Pokemon
 
 class Endivie(Pokemon):
 
-    def __init__(self):
+    def __init__(self, id:int):
         super().__init__(
+            id,
             Plant(),
             None,
             30,

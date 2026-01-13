@@ -18,8 +18,9 @@ class GameService:
         self.__pokemons = []
 
     def create_random_pokemon(self) -> Pokemon:
-        pokemon_type:Type[Pokemon] = self.regristry_service.pokemon_types[random.Random().randint(0,len(self.regristry_service.pokemon_types))]
-        pokemon:Pokemon = pokemon_type()
+        pokemon_type:Type[Pokemon] = self.regristry_service.pokemon_types[random.Random().randint(0,len(self.regristry_service.pokemon_types)-1)]
+        null_player:Trainer = self.db_service.load_trainer("null_player")
+        pokemon:Pokemon = pokemon_type(null_player.Id)
         self.__pokemons.append(pokemon)
         return pokemon
 
@@ -97,11 +98,14 @@ class GameService:
         enemy_pokemon:Pokemon = self.create_random_pokemon()
         own_pokemon:Pokemon = self.choose_pokemon()
         is_own_turn:bool = random.random() > 0.5
+        damage_dealt:float = 0.0
         while True:
             if is_own_turn:
                 self.choose_attack(own_pokemon).execute(enemy_pokemon)
+                print(f"the enemy pokemon has {enemy_pokemon.Health} left")
             else:
                 self.choose_random_attack(enemy_pokemon).execute(own_pokemon)
+                print(f"your pokemon has {own_pokemon.Health} left")
             if own_pokemon.is_down():
                 self.on_own_pokemon_down()
                 break
@@ -111,18 +115,20 @@ class GameService:
             is_own_turn:bool = not is_own_turn
 
     def on_enemy_pokemon_down(self):
-        pass
+        print(f"your defeated the enemy pokemon")
 
     def on_own_pokemon_down(self):
-        pass
+        print(f"your were defeated by the enemy pokemon")
 
     def game_loop(self):
         #load a player if none is set
         if not self.player:
-            player_name:str = input("enter your player name")
+            player_name:str = ""
+            while player_name == "null_player" or player_name == "":
+                player_name = input("enter your player name")
             self.player = self.db_service.load_trainer(player_name)
         #give a starter pokemon to the player is he has none
         if len(self.player.pokemons) == 0:
-            self.player.pokemons.append(self.regristry_service.starter_pokemon_type())
-            self.db_service.insert_or_update_trainer(self.player)
+            self.player.pokemons.append(self.regristry_service.starter_pokemon_type(self.player.Id))
+            self.db_service.update_trainer(self.player)
         self.figth_random_pokemon()

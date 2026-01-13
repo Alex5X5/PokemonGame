@@ -6,11 +6,12 @@ from Logic.Models.Pokemons.Pokemon import Pokemon
 
 class Arkani(Pokemon):
 
-    def __init__(self):
+    def __init__(self, id:int):
         super().__init__(
+            id,
             Fire(),
             Water(),
-            120,
-            100,
+            70,
+            70,
             Punch(self)
         )

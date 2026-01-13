@@ -10,6 +10,7 @@ class Pokemon:
 
     def __init__(
             self,
+            id:int,
             element1:Element,
             element2:Element | None,
             max_health:float,
@@ -18,6 +19,7 @@ class Pokemon:
             attack2:Attack | None = None,
             attack3:Attack | None = None,
             experience=0.0):
+        self.__id:int = id
         self.__element1:Element = element1
         self.__element2:Element | None = element2
         self.__max_health:Final[float] = max_health
@@ -39,26 +41,8 @@ class Pokemon:
         self.__experience = data.get(DbService.POKEMON_EXPERIENCE_KEY)
 
     @property
-    def Max_Health(self) -> float:
-        return math.floor(self.__max_health * self.Level) + self.Level + 10
-
-    @property
-    def Health(self) -> float: return self.__health
-
-    @Health.setter
-    def Health(self, value:float): self.__health = max(min(value, self.Max_Health), 0)
-
-    @property
-    def Element1(self) -> Element: return self.__element1
-
-    @property
-    def Element2(self) -> Element | None: return self.__element2
-
-    @property
-    def Experience(self) -> float: return self.__experience
-
-    @Experience.setter
-    def Experience(self, value:float): self.__experience = value
+    def Id(self) -> int:
+        return self.__id
 
     @property
     def Attack1(self) -> Attack: return self.__attack1
@@ -68,6 +52,35 @@ class Pokemon:
 
     @property
     def Attack3(self) -> Attack | None: return self.__attack3
+
+    @property
+    def Element1(self) -> Element: return self.__element1
+
+    @property
+    def Element2(self) -> Element | None: return self.__element2
+
+    @property
+    def Experience(self) -> float:
+        return self.__experience
+
+    @Experience.setter
+    def Experience(self, value:float):
+        old_level:float = self.Level
+        self.__experience = value
+        if self.Level > old_level:
+            self.__health += value
+
+    @property
+    def Health(self) -> float:
+        return self.__health
+
+    @Health.setter
+    def Health(self, value:float):
+        self.__health = max(min(value, self.Max_Health), 0)
+
+    @property
+    def Max_Health(self) -> float:
+        return math.floor(self.__max_health * self.Level) + self.Level + 10
 
     @property
     def Level(self) -> int:
@@ -90,4 +103,7 @@ class Pokemon:
 
     def execute_attack_3(self, target:'Pokemon'):
         self.__attack3.execute(target)
+
+    def on_level_up(self):
+        print(f"your{self.__class__.__name__} is now level {self.Level}")
 

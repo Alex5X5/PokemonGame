@@ -6,11 +6,12 @@ from Logic.Models.Pokemons.Pokemon import Pokemon
 
 class Umbreon(Pokemon):
 
-    def __init__(self):
+    def __init__(self, id:int):
         super().__init__(
+            id,
             Ghost(),
             Poison(),
-            110,
-            110,
+            80,
+            80,
             Punch(self)
         )

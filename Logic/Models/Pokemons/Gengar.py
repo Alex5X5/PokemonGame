@@ -6,8 +6,9 @@ from Logic.Models.Pokemons.Pokemon import Pokemon
 
 class Gengar(Pokemon):
 
-    def __init__(self):
+    def __init__(self, id:int):
         super().__init__(
+            id,
             Ghost(),
             Poison(),
             110,
