@@ -3,6 +3,7 @@ from typing import Any, Type, Final
 
 from Logic.Models.Pokemons.Pokemon import Pokemon
 from Logic.Models.Trainer import Trainer
+from Logic.Services.DependencyInjector import DpiEntryPoint
 from Logic.Services.LoggingService import Logger
 from Logic.Services.PathService import PathService
 from Logic.Services.RegsitryService import RegistryService
@@ -16,8 +17,8 @@ class DbService:
 
     TRAINER_NAME_KEY:Final[str] = 'Name'
 
-
-    def __init__(self, path_service: PathService, registry_service:RegistryService):
+    @DpiEntryPoint
+    def __init__(self, path_service:PathService, registry_service:RegistryService):
         self.__path_service: PathService = path_service
         self.__registry_service:RegistryService = registry_service
         self.logger: Logger = Logger('DbService')
@@ -40,7 +41,11 @@ class DbService:
 
     def load_trainer(self, trainer_name: str) -> Trainer:
         trainer_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Trainers WHERE Name='{trainer_name}'", expect_result=True)
-        trainer: Trainer = Trainer.from_dictionary(trainer_data[0])
+        trainer: Trainer
+        if len(trainer_data) > 0:
+            trainer = Trainer.from_dictionary(trainer_data[0])
+        else:
+            trainer = self.insert_trainer(Trainer(0, trainer_name))
         pokemon_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Pokemons WHERE TrainerId='{trainer.Id}'", expect_result=True)
         for data in pokemon_data:
             pokemon_type:Type = self.__registry_service.find_pokemon_type([data["Type"]])
@@ -70,7 +75,7 @@ class DbService:
                 res.append(pokemon)
         return res
 
-    def update_pokemon(self, pokemon:Pokemon, trainer:Trainer or None) -> None:
+    def update_pokemon(self, pokemon:Pokemon, trainer:Trainer | None) -> None:
         self.execute_raw(f"UPDATE Trainers SET {DbService.POKEMON_TYPE_KEY}='{pokemon.__class__.__name__}', {DbService.POKEMON_EXPERIENCE_KEY}='{pokemon.Experience}', {DbService.POKEMON_OWNER_KEY}={trainer.Id if trainer else 0} WHERE Id={pokemon.Id}")
 
     def execute_raw(self, command: str, expect_result=False) -> Any | None:
@@ -102,14 +107,14 @@ class DbService:
         return self
 
 
-"""p = PathService()
+p = PathService()
 r = RegistryService()
 s = DbService(p, r)
 s.start_chain_execution()\
     .execute_raw_chained(f"DROP TABLE IF EXISTS Trainers")\
     .execute_raw_chained(f"DROP TABLE IF EXISTS Pokemons")\
-    .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Trainers(Id INTEGER PRIMARY KEY AUTOINCREMENT, {DbService.TRAINER_NAME_KEY} VARCHAR(50) UNIQUE)")\
-    .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Pokemons(Id INTEGER PRIMARY KEY AUTOINCREMENT, {DbService.POKEMON_TYPE_KEY} VARCHAR(50), {DbService.POKEMON_EXPERIENCE_KEY} REAL, {DbService.POKEMON_OWNER_KEY} INTEGER NOT NULL, FOREIGN KEY (TrainerId) REFERENCES Trainers (Id))")\
+    .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Trainers({DbService.TRAINER_NAME_KEY} VARCHAR(50) PRIMARY KEY)")\
+    .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Pokemons(Id INTEGER PRIMARY KEY AUTOINCREMENT, {DbService.POKEMON_TYPE_KEY} VARCHAR(50), {DbService.POKEMON_EXPERIENCE_KEY} REAL, {DbService.POKEMON_OWNER_KEY} VARCHAR(50) NOT NULL, FOREIGN KEY (TrainerId) REFERENCES Trainers (Id))")\
     .execute_raw_chained(f"INSERT INTO Trainers (Name) VALUES ('null_player')")\
     .execute_raw_chained(f"INSERT INTO Trainers (Name) VALUES ('test')")\
     .finish_chain_execution()
@@ -117,4 +122,4 @@ test_trainer:Trainer = s.load_trainer("test")
 s.execute_raw(f"INSERT INTO Pokemons({DbService.POKEMON_TYPE_KEY}, {DbService.POKEMON_EXPERIENCE_KEY}, {DbService.POKEMON_OWNER_KEY}) VALUES ('{Arkani.__name__}', 3599.4, {test_trainer.Id})")
 print(s.execute_raw(f"SELECT * FROM Pokemons WHERE TrainerId={test_trainer.Id}", expect_result=True))
 test_trainer_2:Trainer = s.load_trainer("null_player")
-print(s.execute_raw(f"SELECT * FROM Pokemons WHERE TrainerId={test_trainer_2.Id}", expect_result=True))"""
+print(s.execute_raw(f"SELECT * FROM Pokemons WHERE TrainerId={test_trainer_2.Id}", expect_result=True))

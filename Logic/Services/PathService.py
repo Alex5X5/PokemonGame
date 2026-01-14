@@ -3,8 +3,12 @@ import sys
 import pathlib
 from shutil import copyfile
 
+from Logic.Services.DependencyInjector import DpiEntryPoint
+
+
 class PathService:
 
+    @DpiEntryPoint
     def __init__(self):
         self.real_path_string: str = os.path.dirname(os.path.realpath(__file__))
         self.root_path_string: str = str(pathlib.Path.cwd()) + '\\'

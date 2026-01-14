@@ -6,11 +6,13 @@ from Logic.Models.Attacks.Attack import Attack
 from Logic.Models.Pokemons.Pokemon import Pokemon
 from Logic.Models.Trainer import Trainer
 from Logic.Services.DbService import DbService
+from Logic.Services.DependencyInjector import DpiEntryPoint
 from Logic.Services.RegsitryService import RegistryService
 
 
 class GameService:
 
+    @DpiEntryPoint
     def __init__(self, registry_service:RegistryService, database_service:DbService):
         self.regristry_service:RegistryService = registry_service
         self.db_service = database_service
@@ -26,7 +28,6 @@ class GameService:
 
     def choose_pokemon(self) -> Pokemon:
         print("Your pokemon are:")
-        #for i in range(len(self.player.pokemons)):
         for i, pokemon in enumerate(self.player.pokemons):
             if not pokemon.is_down():
                 print(f"{i+1}: {pokemon.display_str()}")
@@ -107,18 +108,18 @@ class GameService:
                 self.choose_random_attack(enemy_pokemon).execute(own_pokemon)
                 print(f"your pokemon has {own_pokemon.Health} left")
             if own_pokemon.is_down():
-                self.on_own_pokemon_down()
+                self.on_own_pokemon_down(own_pokemon, enemy_pokemon)
                 break
             if enemy_pokemon.is_down():
-                self.on_enemy_pokemon_down()
+                self.on_enemy_pokemon_down(own_pokemon, enemy_pokemon)
                 break
             is_own_turn:bool = not is_own_turn
 
-    def on_enemy_pokemon_down(self):
-        print(f"your defeated the enemy pokemon")
+    def on_enemy_pokemon_down(self, own_pokemon:Pokemon, enemy_pokemon:Pokemon):
+        print(f"your {own_pokemon.display_str()} defeated the enemy {enemy_pokemon.display_str()}")
 
-    def on_own_pokemon_down(self):
-        print(f"your were defeated by the enemy pokemon")
+    def on_own_pokemon_down(self, own_pokemon:Pokemon, enemy_pokemon:Pokemon):
+        print(f"your {own_pokemon.display_str()} was defeated by the enemy {enemy_pokemon.display_str()}")
 
     def game_loop(self):
         #load a player if none is set

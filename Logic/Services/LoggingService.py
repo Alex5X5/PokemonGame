@@ -1,5 +1,7 @@
 from typing import Final
 
+from Logic.Services.DependencyInjector import DpiEntryPoint
+
 message_type_style:Final[str] = '\033[1;32m'
 class_style:Final[str] = '\033[1;34m'
 error_style:Final[str] = '\033[1;31m'
@@ -14,6 +16,7 @@ class Logger:
 
     levels:list[str]
 
+    @DpiEntryPoint
     def __init__(self, level:str):
         self.levels:list[str] = []
         self.levels.append(level)
