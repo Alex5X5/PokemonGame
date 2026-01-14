@@ -27,12 +27,14 @@ class Attack(ABC):
     def display_str(self):
         return f"{self.__class__.__name__}"
 
-    def execute(self, victim:'Pokemon'):
+    def execute(self, victim:'Pokemon') -> float:
         e:AttackEvent = AttackEvent(self.__executor, victim, self)
         self.on_pre_attack(e)
         if not e.is_blocked:
             self.on_attack(e)
             self.on_post_attack(e)
+            return e.damage
+        return 0.0
 
     @abstractmethod
     def on_pre_attack(self, event:AttackEvent):
@@ -40,9 +42,8 @@ class Attack(ABC):
 
     @abstractmethod
     def on_attack(self, event:AttackEvent):
-        print(event.damage)
         event.victim.Health = event.victim.Health - event.damage
 
     @abstractmethod
     def on_post_attack(self, event:AttackEvent):
-        event.attacker.Experience += event.damage / 5
+        pass

@@ -16,7 +16,6 @@ class DpiEntryPoint:
         entry_point_names = DependencyInjector.entry_points.get(self.owner_class, [])
         entry_point_names.append(method_name)
         DependencyInjector.entry_points.update({self.owner_class: entry_point_names})
-        #print(f"marking function {method_name} of class {self.owner_class.__name__} as a valid dpi entry point")
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -52,7 +51,7 @@ class ServiceCollection:
         self.__did_build_services = True
 
     def get_service(self, T:Type) -> Any | None:
-        print(f"services:\n{'\n'.join(s.__name__ for s in self.__services)}")
+        #print(f"services:\n{'\n'.join(s.__name__ for s in self.__services)}")
         return self.__services.get(T)
 
 
@@ -67,7 +66,6 @@ class DependencyInjector:
         print(f"started buiding services")
         self.__service_collection.enable_did_build_services()
         for cls_T, reg_T, policy in self.__service_collection.Services_to_build:
-            print(f"building service {cls_T.__name__}")
             entry_points:list[Callable]
             try:
                 entry_points = [getattr(cls_T, p) for p in DependencyInjector.entry_points[cls_T]]
@@ -78,7 +76,6 @@ class DependencyInjector:
                 all_params_available:bool = True
                 prams_to_use:list[Any] = []
                 for param_name, param in signature(entry_point).parameters.items():
-                    print(f"param annotation:{param.annotation}")
                     if param_name == 'self':
                         continue
                     val = self.__service_collection.get_service(param.annotation)
@@ -88,13 +85,10 @@ class DependencyInjector:
                         break
                     else:
                         prams_to_use.append(val)
-                print(f"all params available:{all_params_available}")
                 if all_params_available:
-                    print(f"creating instance")
                     instance = object.__new__(object)
                     instance = cls_T.__new__(cls_T, instance)
                     entry_point(instance, *prams_to_use)
-                    print(f"instance:{instance}")
                     self.__service_collection.Services.update({reg_T:instance})
                     break
         return self.__service_collection

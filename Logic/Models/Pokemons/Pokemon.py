@@ -11,6 +11,7 @@ class Pokemon:
     def __init__(
             self,
             id:int,
+            trainer_name:str,
             element1:Element,
             element2:Element | None,
             max_health:float,
@@ -20,6 +21,7 @@ class Pokemon:
             attack3:Attack | None = None,
             experience=0.0):
         self.__id:int = id
+        self.__trainer_name:str = trainer_name
         self.__element1:Element = element1
         self.__element2:Element | None = element2
         self.__max_health:Final[float] = max_health
@@ -68,7 +70,7 @@ class Pokemon:
         old_level:float = self.Level
         self.__experience = value
         if self.Level > old_level:
-            self.__health += value
+            self.on_level_up()
 
     @property
     def Health(self) -> float:
@@ -95,15 +97,7 @@ class Pokemon:
     def is_down(self) -> bool:
         return self.Health == 0.0
 
-    def execute_attack_1(self, target:'Pokemon'):
-        self.__attack1.execute(target)
-
-    def execute_attack_2(self, target:'Pokemon'):
-        self.__attack2.execute(target)
-
-    def execute_attack_3(self, target:'Pokemon'):
-        self.__attack3.execute(target)
-
     def on_level_up(self):
-        print(f"your{self.__class__.__name__} is now level {self.Level}")
+        pass
+        #print(f"your{self.__class__.__name__} is now level {self.Level}")
 

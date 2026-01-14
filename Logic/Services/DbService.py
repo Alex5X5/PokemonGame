@@ -13,7 +13,8 @@ class DbService:
 
     POKEMON_TYPE_KEY:Final[str] = 'Type'
     POKEMON_EXPERIENCE_KEY:Final[str] = 'Experience'
-    POKEMON_OWNER_KEY:Final[str] = 'TrainerId'
+    POKEMON_OWNER_KEY:Final[str] = 'TrainerName'
+    POKEMON_ID_KEY:Final[str] = 'Id'
 
     TRAINER_NAME_KEY:Final[str] = 'Name'
 
@@ -45,38 +46,33 @@ class DbService:
         if len(trainer_data) > 0:
             trainer = Trainer.from_dictionary(trainer_data[0])
         else:
-            trainer = self.insert_trainer(Trainer(0, trainer_name))
-        pokemon_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Pokemons WHERE TrainerId='{trainer.Id}'", expect_result=True)
-        for data in pokemon_data:
-            pokemon_type:Type = self.__registry_service.find_pokemon_type([data["Type"]])
-            if pokemon_type is not None:
-                pokemon:Pokemon = pokemon_type(trainer)
-                trainer.pokemons.append(pokemon)
+            trainer = self.insert_trainer(trainer_name)
+        trainer.pokemons = self.load_pokemons_for_player(trainer.Name)
         return trainer
 
-    def insert_trainer(self, trainer: Trainer) -> None:
-        self.execute_raw(f"INSERT INTO Trainers (Name) VALUES ('{trainer.Name}')")
+    def insert_trainer(self, trainer_name: str) -> Trainer:
+        self.execute_raw(f"INSERT INTO Trainers (Name) VALUES ('{trainer_name}')")
+        return self.load_trainer(trainer_name)
 
     def update_trainer(self, trainer: Trainer) -> None:
-        self.execute_raw(f"INSERT OR IGNORE INTO Trainers (Name, Id) VALUES ('{trainer.Name}', {trainer.Id})")
-        self.execute_raw(f"UPDATE Trainers SET Name='{trainer.Name}' WHERE Id={trainer.Id}")
+        for pokemon in trainer.Pokemons:
+            self.update_pokemon(pokemon, trainer)
 
     def insert_pokemon(self, pokemon: Pokemon, owner:Trainer):
-        self.execute_raw(f"INSERT INTO Pokemons ({DbService.POKEMON_TYPE_KEY}, {DbService.POKEMON_EXPERIENCE_KEY}, {DbService.POKEMON_OWNER_KEY}) VALUES ('{pokemon.__class__.__name__}', {pokemon.Experience}, {owner.Id})")
+        self.execute_raw(f"INSERT INTO Pokemons ({DbService.POKEMON_TYPE_KEY}, {DbService.POKEMON_EXPERIENCE_KEY}, {DbService.POKEMON_OWNER_KEY}) VALUES ('{pokemon.__class__.__name__}', {pokemon.Experience}, '{owner.Name}')")
 
-    def load_pokemons_for_player(self, trainer_id:int) -> list[Pokemon]:
+    def load_pokemons_for_player(self, trainer_name:str) -> list[Pokemon]:
         res: list[Pokemon] = []
-        pokemon_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Pokemons WHERE {DbService.POKEMON_OWNER_KEY}='{trainer_id}'", expect_result=True)
-        self.__registry_service.find_pokemon_type(pokemon_data[0][DbService.POKEMON_TYPE_KEY])
+        pokemon_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Pokemons WHERE {DbService.POKEMON_OWNER_KEY}='{trainer_name}'", expect_result=True)
         for data in pokemon_data:
             pokemon_type:Type = self.__registry_service.find_pokemon_type(data[DbService.POKEMON_TYPE_KEY])
             if pokemon_type is not None:
-                pokemon:Pokemon = pokemon_type(trainer_id)
+                pokemon:Pokemon = pokemon_type(data[DbService.POKEMON_ID_KEY], trainer_name)
                 res.append(pokemon)
         return res
 
     def update_pokemon(self, pokemon:Pokemon, trainer:Trainer | None) -> None:
-        self.execute_raw(f"UPDATE Trainers SET {DbService.POKEMON_TYPE_KEY}='{pokemon.__class__.__name__}', {DbService.POKEMON_EXPERIENCE_KEY}='{pokemon.Experience}', {DbService.POKEMON_OWNER_KEY}={trainer.Id if trainer else 0} WHERE Id={pokemon.Id}")
+        self.execute_raw(f"UPDATE Pokemons SET {DbService.POKEMON_TYPE_KEY}='{pokemon.__class__.__name__}', {DbService.POKEMON_EXPERIENCE_KEY}={pokemon.Experience}, {DbService.POKEMON_OWNER_KEY}='{trainer.Name if trainer else 'null_player'}' WHERE {DbService.POKEMON_ID_KEY}={pokemon.Id}")
 
     def execute_raw(self, command: str, expect_result=False) -> Any | None:
         with self.__init_connection() as conn:
@@ -86,6 +82,7 @@ class DbService:
             if expect_result:
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
+        return None
 
     def start_chain_execution(self) -> 'DbService':
         self.__chain_execution_connection = self.__init_connection()
@@ -106,7 +103,7 @@ class DbService:
             self.__chain_execution_connection.close()
         return self
 
-
+"""
 p = PathService()
 r = RegistryService()
 s = DbService(p, r)
@@ -114,12 +111,16 @@ s.start_chain_execution()\
     .execute_raw_chained(f"DROP TABLE IF EXISTS Trainers")\
     .execute_raw_chained(f"DROP TABLE IF EXISTS Pokemons")\
     .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Trainers({DbService.TRAINER_NAME_KEY} VARCHAR(50) PRIMARY KEY)")\
-    .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Pokemons(Id INTEGER PRIMARY KEY AUTOINCREMENT, {DbService.POKEMON_TYPE_KEY} VARCHAR(50), {DbService.POKEMON_EXPERIENCE_KEY} REAL, {DbService.POKEMON_OWNER_KEY} VARCHAR(50) NOT NULL, FOREIGN KEY (TrainerId) REFERENCES Trainers (Id))")\
+    .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Pokemons(Id INTEGER PRIMARY KEY AUTOINCREMENT, {DbService.POKEMON_TYPE_KEY} VARCHAR(50), {DbService.POKEMON_EXPERIENCE_KEY} REAL, {DbService.POKEMON_OWNER_KEY} VARCHAR(50) NOT NULL, FOREIGN KEY ({DbService.POKEMON_OWNER_KEY}) REFERENCES Trainers ({DbService.TRAINER_NAME_KEY}))")\
     .execute_raw_chained(f"INSERT INTO Trainers (Name) VALUES ('null_player')")\
     .execute_raw_chained(f"INSERT INTO Trainers (Name) VALUES ('test')")\
     .finish_chain_execution()
 test_trainer:Trainer = s.load_trainer("test")
-s.execute_raw(f"INSERT INTO Pokemons({DbService.POKEMON_TYPE_KEY}, {DbService.POKEMON_EXPERIENCE_KEY}, {DbService.POKEMON_OWNER_KEY}) VALUES ('{Arkani.__name__}', 3599.4, {test_trainer.Id})")
-print(s.execute_raw(f"SELECT * FROM Pokemons WHERE TrainerId={test_trainer.Id}", expect_result=True))
+s.execute_raw(f"INSERT INTO Pokemons({DbService.POKEMON_TYPE_KEY}, {DbService.POKEMON_EXPERIENCE_KEY}, {DbService.POKEMON_OWNER_KEY}) VALUES ('Arkani', 3599.4, '{test_trainer.Name}')")
+test_trainer = s.load_trainer("test")
+print(f"test_trainer:{test_trainer}")
+print(f"test_trainer pokemons:{s.load_pokemons_for_player(test_trainer.Name)}")
 test_trainer_2:Trainer = s.load_trainer("null_player")
-print(s.execute_raw(f"SELECT * FROM Pokemons WHERE TrainerId={test_trainer_2.Id}", expect_result=True))
+print(test_trainer_2)
+print(s.execute_raw(f"SELECT * FROM Pokemons WHERE {DbService.POKEMON_OWNER_KEY}='{test_trainer_2.Name}'", expect_result=True))
+"""
