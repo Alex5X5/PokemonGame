@@ -1,4 +1,5 @@
 import math
+
 from typing import Any, Final
 
 from Logic.Models.Attacks.Attack import *
@@ -19,7 +20,8 @@ class Pokemon:
             attack1:Attack,
             attack2:Attack | None = None,
             attack3:Attack | None = None,
-            experience=0.0):
+            experience=0.0,
+            print_event_messages:bool = False):
         self.__id:int = id
         self.__trainer_name:str = trainer_name
         self.__element1:Element = element1
@@ -31,9 +33,10 @@ class Pokemon:
         self.__attack3:Attack | None = attack3
         self.__experience:float = experience
         self.modifiers:list[Modifier] = []
+        self.__print_event_messages:bool = print_event_messages
 
     def __str__(self):
-        return f"<Logic.Models.Pokemons.Pokemon.Pokemon[Element1={self.Element1}, Element2={self.Element2}, Max Health={self.__max_health}, Health={self.__health}, Experience={self.__experience}]>"
+        return f"<Logic.Models.Pokemons.Pokemon.Pokemon[Element1={self.Element1}, Element2={self.Element2}, Max Health={self.Max_Health}, Health={self.__health}, Experience={self.__experience}]>"
 
     def display_str(self):
         return f"[{self.Level}]{self.__class__.__name__}"
@@ -42,9 +45,25 @@ class Pokemon:
         from Logic.Services.DbService import DbService
         self.__experience = data.get(DbService.POKEMON_EXPERIENCE_KEY)
 
+    @staticmethod
+    def calc_experience(level:float) -> float:
+        return (10000*math.pow(math.e, math.log(10, math.e) * level / 50) - 10000) / 99
+
+    @staticmethod
+    def calc_level_precise(experience: float) -> float:
+        return 50 * (math.log((experience * 99 + 10000) / 10000, 10))
+
+    @staticmethod
+    def calc_level(experience:float) -> int:
+        return int(math.floor(Pokemon.calc_level_precise(experience)))
+
     @property
     def Id(self) -> int:
         return self.__id
+
+    @Id.setter
+    def Id(self, value:int) -> None:
+        self.__id = value
 
     @property
     def Attack1(self) -> Attack: return self.__attack1
@@ -86,7 +105,7 @@ class Pokemon:
 
     @property
     def Level(self) -> int:
-        return int(math.floor(50 * (math.log((self.Experience * 99 + 10000) / 10000, 10))))
+        return Pokemon.calc_level(self.Experience)
 
     def has_attack2(self) -> bool:
         return self.__attack2 is not None and self.Level > 10
@@ -98,6 +117,5 @@ class Pokemon:
         return self.Health == 0.0
 
     def on_level_up(self):
-        pass
-        #print(f"your{self.__class__.__name__} is now level {self.Level}")
-
+        if self.__print_event_messages:
+            print(f"your{self.__class__.__name__} is now level {self.Level}")

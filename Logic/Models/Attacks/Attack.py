@@ -22,7 +22,7 @@ class Attack(ABC):
 
     @property
     def Power(self) -> float:
-        return self.__power * (self.__executor.Level / 2 + 1)
+        return self.__power * (self.__executor.Level / 50 + 1)
 
     def display_str(self):
         return f"{self.__class__.__name__}"

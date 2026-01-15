@@ -1,5 +1,6 @@
 import random
 import time
+from operator import attrgetter
 
 from typing import Type, Any
 
@@ -35,16 +36,24 @@ class GameService:
         self.player:Trainer | None = None
         self.__pokemons = []
 
+    def player_is_worthy(self, event:PokemonDefeatedEvent) ->bool:
+        return random.randint(1, event.looser.Level) < self.player.Reputiation
+
+    def max_random_enemy_xp(self) -> float:
+        return max(self.player.Pokemons, key=attrgetter('Level')).Experience
+
+
     def create_random_pokemon(self) -> Pokemon:
-        pokemon_type:Type[Pokemon] = self.regristry_service.pokemon_types[random.Random().randint(0,len(self.regristry_service.pokemon_types)-1)]
+        pokemon_type:Type[Pokemon] = self.regristry_service.random_pokemon_type
         null_player:Trainer = self.db_service.load_trainer("null_player")
         pokemon:Any[Pokemon] = pokemon_type(0, null_player.Name)
         self.db_service.insert_pokemon(pokemon, null_player)
-        self.__pokemons.append(pokemon)
         return pokemon
 
     def give_start_pokemon(self):
-        self.player.Pokemons.append(self.regristry_service.starter_pokemon_type(0, self.player.Name))
+        pokemon = self.regristry_service.starter_pokemon_type(0, self.player.Name)
+        self.db_service.insert_pokemon(pokemon, self.player)
+        self.player.Pokemons.append(pokemon)
         self.player.Pokemons[0].Experience = 30
         self.db_service.update_trainer(self.player)
 
@@ -120,48 +129,50 @@ class GameService:
     def figth_random_pokemon(self):
         enemy_pokemon:Pokemon = self.create_random_pokemon()
         print(f"a {enemy_pokemon.display_str()} jumps out of the bushes")
-        time.sleep(3.0)
+        time.sleep(2.0)
         own_pokemon:Pokemon = self.choose_pokemon()
+        time.sleep(2.0)
         is_own_turn:bool = random.random() > 0.5
         damage_dealt_to_enemy:float = 0.0
         damage_dealt_to_self:float = 0.0
-        time.sleep(3.0)
         while True:
             if is_own_turn:
                 damage_dealt_to_enemy += self.choose_attack(own_pokemon).execute(enemy_pokemon)
-                print(f"the enemy pokemon has {enemy_pokemon.Health} left")
-                time.sleep(3)
+                print(f"the enemy pokemon has {enemy_pokemon.Health} left\n")
             else:
-                damage_dealt_to_self += self.choose_attack(own_pokemon).execute(enemy_pokemon)
-                self.choose_random_attack(enemy_pokemon).execute(own_pokemon)
-                print(f"your pokemon has {own_pokemon.Health} left")
-                time.sleep(3)
+                damage_dealt_to_self += self.choose_random_attack(enemy_pokemon).execute(own_pokemon)
+                print(f"your pokemon has {own_pokemon.Health} left\n")
+            time.sleep(4)
             if own_pokemon.is_down():
-                time.sleep(3)
                 event:PokemonDefeatedEvent = PokemonDefeatedEvent(enemy_pokemon, own_pokemon, damage_dealt_to_enemy, damage_dealt_to_self)
                 self.on_own_pokemon_down(event)
+                time.sleep(4)
                 break
             if enemy_pokemon.is_down():
-                time.sleep(3)
                 event:PokemonDefeatedEvent = PokemonDefeatedEvent(own_pokemon, enemy_pokemon, damage_dealt_to_self, damage_dealt_to_enemy)
                 self.on_enemy_pokemon_down(event)
+                time.sleep(4)
                 break
             is_own_turn:bool = not is_own_turn
 
     def on_enemy_pokemon_down(self, event:PokemonDefeatedEvent):
-        print(f"your {event.winner.display_str()} defeated the enemy {event.looser.display_str()}\n\n")
-        event.winner.Experience += event.looser_damaged
-        time.sleep(5)
-        print(f"will the enemy pokemon trust you ?")
-        time.sleep(5)
+        print(f"your {event.winner.display_str()} defeated the enemy {event.looser.display_str()}")
+        print(f"you had {event.winner.Health} hp left\n")
+        event.winner.Experience += event.looser_damaged / 2
+        self.db_service.update_pokemon(event.winner, self.player)
+        time.sleep(2.5)
+        print(f"will the enemy pokemon trust you ?\n\n")
+        time.sleep(4)
         if random.randint(1, 100) < self.player.Reputiation:
             self.on_pokemon_trusts_player(event)
         else:
-            print(f"the pokemon desides that you are not worthy enough and hobbles away")
-        self.db_service.update_trainer(self.player)
+            print(f"the pokemon desides that you are not worthy enough and hobbles away\n\n")
 
     def on_own_pokemon_down(self, event:PokemonDefeatedEvent):
-        print(f"your {event.looser.display_str()} was defeated by the enemy {event.winner.display_str()}\n\n")
+        print(f"your {event.looser.display_str()} was defeated by the enemy {event.winner.display_str()}")
+        print(f"the enemy had {event.winner.Health} hp left\n\n")
+        event.looser.Experience += event.winner_damaged / 5
+        self.db_service.update_trainer(self.player)
 
 
     def on_pokemon_trusts_player(self, event:PokemonDefeatedEvent):
@@ -171,17 +182,19 @@ class GameService:
         while True:
             input_str:str = input(f"enter y for yes or n for no")
             if input_str == "y":
-                self.on_pokemon_trusts_player(event)
-                return
+                self.on_player_accepts_pokemon(event)
+                break
             elif input_str == "n":
-                self.on_pokemon_trusts_player(event)
-                return
+                self.on_player_rejects_pokemon(event)
+                break
 
     def on_player_accepts_pokemon(self, event:PokemonDefeatedEvent):
-        pass
+        print(f"you now own a new {event.looser.display_str()}")
+        self.player.Pokemons.append(event.looser)
+        self.db_service.update_trainer(self.player)
 
     def on_player_rejects_pokemon(self, event:PokemonDefeatedEvent):
-        pass
+        print(f"you leave the pokemon behind")
 
     def game_loop(self):
         #load a player if none is set

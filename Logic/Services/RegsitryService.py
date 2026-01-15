@@ -1,3 +1,5 @@
+import random
+
 from typing import Type
 
 from Logic.Models.Attacks.Attack import Attack
@@ -42,6 +44,10 @@ class RegistryService:
     @property
     def starter_pokemon_type(self):
         return Endivie
+
+    @property
+    def random_pokemon_type(self):
+        return self.pokemon_types[random.randint(0,len(self.pokemon_types)-1)]
 
     @property
     def attack_types(self) -> list[Type]:

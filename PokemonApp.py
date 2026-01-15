@@ -1,5 +1,6 @@
 import time
 
+from Logic.Services.Logger import Logger
 from Logic.Services.DbService import DbService
 from Logic.Services.DependencyInjector import DependencyInjector, ServiceCollection
 from Logic.Services.GameService import GameService
@@ -12,6 +13,7 @@ class PokemonApp:
     def __init__(self):
 
         self.injector: DependencyInjector = DependencyInjector()
+        self.injector.register_service_singleton(Logger)
         self.injector.register_service_singleton(RegistryService)
         self.injector.register_service_singleton(PathService)
         self.injector.register_service_singleton(DbService)
@@ -20,7 +22,7 @@ class PokemonApp:
         gs = services.get_service(GameService)
         while True:
             gs.game_loop()
-            time.sleep(1)
+            time.sleep(2.0)
 
         #main_view_model:MainViewModel = MainViewModel(self.game_service)
         #ViewLocator.register_page_type_singleton(main_view_model)

@@ -4,7 +4,7 @@ from typing import Any, Type, Final
 from Logic.Models.Pokemons.Pokemon import Pokemon
 from Logic.Models.Trainer import Trainer
 from Logic.Services.DependencyInjector import DpiEntryPoint
-from Logic.Services.LoggingService import Logger
+from Logic.Services.Logger import Logger
 from Logic.Services.PathService import PathService
 from Logic.Services.RegsitryService import RegistryService
 
@@ -42,12 +42,13 @@ class DbService:
 
     def load_trainer(self, trainer_name: str) -> Trainer:
         trainer_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Trainers WHERE Name='{trainer_name}'", expect_result=True)
-        trainer: Trainer
+        trainer:Trainer
         if len(trainer_data) > 0:
             trainer = Trainer.from_dictionary(trainer_data[0])
         else:
             trainer = self.insert_trainer(trainer_name)
-        trainer.pokemons = self.load_pokemons_for_player(trainer.Name)
+        pokemons = self.load_pokemons_for_player(trainer.Name)
+        trainer.Pokemons = pokemons
         return trainer
 
     def insert_trainer(self, trainer_name: str) -> Trainer:
@@ -59,20 +60,22 @@ class DbService:
             self.update_pokemon(pokemon, trainer)
 
     def insert_pokemon(self, pokemon: Pokemon, owner:Trainer):
-        self.execute_raw(f"INSERT INTO Pokemons ({DbService.POKEMON_TYPE_KEY}, {DbService.POKEMON_EXPERIENCE_KEY}, {DbService.POKEMON_OWNER_KEY}) VALUES ('{pokemon.__class__.__name__}', {pokemon.Experience}, '{owner.Name}')")
+        pokemon.Id = self.execute_raw_get_row_id(f"INSERT INTO Pokemons ({DbService.POKEMON_TYPE_KEY}, {DbService.POKEMON_EXPERIENCE_KEY}, {DbService.POKEMON_OWNER_KEY}) VALUES ('{pokemon.__class__.__name__}', {pokemon.Experience}, '{owner.Name}')", expect_row_id=True)
+
+    def update_pokemon(self, pokemon:Pokemon, trainer:Trainer | None) -> None:
+        self.execute_raw(f"UPDATE Pokemons SET {DbService.POKEMON_TYPE_KEY}='{pokemon.__class__.__name__}', {DbService.POKEMON_EXPERIENCE_KEY}={pokemon.Experience}, {DbService.POKEMON_OWNER_KEY}='{trainer.Name}' WHERE {DbService.POKEMON_ID_KEY}={pokemon.Id}")
 
     def load_pokemons_for_player(self, trainer_name:str) -> list[Pokemon]:
         res: list[Pokemon] = []
+        pokemon_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Pokemons", expect_result=True)
         pokemon_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Pokemons WHERE {DbService.POKEMON_OWNER_KEY}='{trainer_name}'", expect_result=True)
         for data in pokemon_data:
             pokemon_type:Type = self.__registry_service.find_pokemon_type(data[DbService.POKEMON_TYPE_KEY])
             if pokemon_type is not None:
                 pokemon:Pokemon = pokemon_type(data[DbService.POKEMON_ID_KEY], trainer_name)
+                pokemon.set_from_dictionary(data)
                 res.append(pokemon)
         return res
-
-    def update_pokemon(self, pokemon:Pokemon, trainer:Trainer | None) -> None:
-        self.execute_raw(f"UPDATE Pokemons SET {DbService.POKEMON_TYPE_KEY}='{pokemon.__class__.__name__}', {DbService.POKEMON_EXPERIENCE_KEY}={pokemon.Experience}, {DbService.POKEMON_OWNER_KEY}='{trainer.Name if trainer else 'null_player'}' WHERE {DbService.POKEMON_ID_KEY}={pokemon.Id}")
 
     def execute_raw(self, command: str, expect_result=False) -> Any | None:
         with self.__init_connection() as conn:
@@ -82,6 +85,21 @@ class DbService:
             if expect_result:
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
+        return None
+
+    def execute_raw_get_row_id(self, command: str, expect_result:bool=False, expect_row_id:bool=False) -> tuple[Any, int] | Any | int | None:
+        with self.__init_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(command)
+            conn.commit()
+            if expect_result and not expect_row_id:
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows]
+            if expect_result:
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows], cursor.lastrowid
+            if expect_row_id:
+                return cursor.lastrowid
         return None
 
     def start_chain_execution(self) -> 'DbService':
