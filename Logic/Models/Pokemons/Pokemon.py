@@ -16,7 +16,6 @@ class Pokemon:
             element1:Element,
             element2:Element | None,
             max_health:float,
-            health:float,
             attack1:Attack,
             attack2:Attack | None = None,
             attack3:Attack | None = None,
@@ -24,14 +23,14 @@ class Pokemon:
             print_event_messages:bool = False):
         self.__id:int = id
         self.__trainer_name:str = trainer_name
+        self.__experience:float = experience
         self.__element1:Element = element1
         self.__element2:Element | None = element2
         self.__max_health:Final[float] = max_health
-        self.__health:float = health
+        self.__health:float = self.Max_Health
         self.__attack1:Attack = attack1
         self.__attack2:Attack | None = attack2
         self.__attack3:Attack | None = attack3
-        self.__experience:float = experience
         self.modifiers:list[Modifier] = []
         self.__print_event_messages:bool = print_event_messages
 

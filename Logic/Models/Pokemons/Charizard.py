@@ -13,6 +13,5 @@ class Charizard(Pokemon):
             Fire(),
             Water(),
             120,
-            120,
             FireBreath(self)
         )

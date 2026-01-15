@@ -13,6 +13,5 @@ class Arkani(Pokemon):
             Fire(),
             Water(),
             70,
-            70,
             Punch(self)
         )

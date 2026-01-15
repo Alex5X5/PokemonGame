@@ -13,6 +13,7 @@ from Logic.Models.Pokemons.Arkani import Arkani
 from Logic.Models.Pokemons.Charizard import Charizard
 from Logic.Models.Pokemons.Gengar import Gengar
 from Logic.Models.Pokemons.Umbreon import Umbreon
+
 from Logic.Services.DependencyInjector import DpiEntryPoint
 
 

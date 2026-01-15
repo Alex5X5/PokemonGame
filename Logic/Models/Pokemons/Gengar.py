@@ -13,6 +13,5 @@ class Gengar(Pokemon):
             Ghost(),
             Poison(),
             110,
-            110,
             Punch(self)
         )

@@ -67,7 +67,6 @@ class DbService:
 
     def load_pokemons_for_player(self, trainer_name:str) -> list[Pokemon]:
         res: list[Pokemon] = []
-        pokemon_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Pokemons", expect_result=True)
         pokemon_data: list[dict[str, Any]] = self.execute_raw(f"SELECT * FROM Pokemons WHERE {DbService.POKEMON_OWNER_KEY}='{trainer_name}'", expect_result=True)
         for data in pokemon_data:
             pokemon_type:Type = self.__registry_service.find_pokemon_type(data[DbService.POKEMON_TYPE_KEY])
@@ -121,24 +120,23 @@ class DbService:
             self.__chain_execution_connection.close()
         return self
 
-"""
-p = PathService()
-r = RegistryService()
-s = DbService(p, r)
-s.start_chain_execution()\
-    .execute_raw_chained(f"DROP TABLE IF EXISTS Trainers")\
-    .execute_raw_chained(f"DROP TABLE IF EXISTS Pokemons")\
-    .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Trainers({DbService.TRAINER_NAME_KEY} VARCHAR(50) PRIMARY KEY)")\
-    .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Pokemons(Id INTEGER PRIMARY KEY AUTOINCREMENT, {DbService.POKEMON_TYPE_KEY} VARCHAR(50), {DbService.POKEMON_EXPERIENCE_KEY} REAL, {DbService.POKEMON_OWNER_KEY} VARCHAR(50) NOT NULL, FOREIGN KEY ({DbService.POKEMON_OWNER_KEY}) REFERENCES Trainers ({DbService.TRAINER_NAME_KEY}))")\
-    .execute_raw_chained(f"INSERT INTO Trainers (Name) VALUES ('null_player')")\
-    .execute_raw_chained(f"INSERT INTO Trainers (Name) VALUES ('test')")\
-    .finish_chain_execution()
-test_trainer:Trainer = s.load_trainer("test")
-s.execute_raw(f"INSERT INTO Pokemons({DbService.POKEMON_TYPE_KEY}, {DbService.POKEMON_EXPERIENCE_KEY}, {DbService.POKEMON_OWNER_KEY}) VALUES ('Arkani', 3599.4, '{test_trainer.Name}')")
-test_trainer = s.load_trainer("test")
-print(f"test_trainer:{test_trainer}")
-print(f"test_trainer pokemons:{s.load_pokemons_for_player(test_trainer.Name)}")
-test_trainer_2:Trainer = s.load_trainer("null_player")
-print(test_trainer_2)
-print(s.execute_raw(f"SELECT * FROM Pokemons WHERE {DbService.POKEMON_OWNER_KEY}='{test_trainer_2.Name}'", expect_result=True))
-"""
+    def setup(self):
+        p = PathService()
+        r = RegistryService()
+        s = DbService(p, r)
+        s.start_chain_execution()\
+            .execute_raw_chained(f"DROP TABLE IF EXISTS Trainers")\
+            .execute_raw_chained(f"DROP TABLE IF EXISTS Pokemons")\
+            .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Trainers({DbService.TRAINER_NAME_KEY} VARCHAR(50) PRIMARY KEY)")\
+            .execute_raw_chained(f"CREATE TABLE IF NOT EXISTS Pokemons(Id INTEGER PRIMARY KEY AUTOINCREMENT, {DbService.POKEMON_TYPE_KEY} VARCHAR(50), {DbService.POKEMON_EXPERIENCE_KEY} REAL, {DbService.POKEMON_OWNER_KEY} VARCHAR(50) NOT NULL, FOREIGN KEY ({DbService.POKEMON_OWNER_KEY}) REFERENCES Trainers ({DbService.TRAINER_NAME_KEY}))")\
+            .execute_raw_chained(f"INSERT INTO Trainers (Name) VALUES ('null_player')")\
+            .execute_raw_chained(f"INSERT INTO Trainers (Name) VALUES ('test')")\
+            .finish_chain_execution()
+        test_trainer:Trainer = s.load_trainer("test")
+        s.execute_raw(f"INSERT INTO Pokemons({DbService.POKEMON_TYPE_KEY}, {DbService.POKEMON_EXPERIENCE_KEY}, {DbService.POKEMON_OWNER_KEY}) VALUES ('Arkani', 3599.4, '{test_trainer.Name}')")
+        test_trainer = s.load_trainer("test")
+        print(f"test_trainer:{test_trainer}")
+        print(f"test_trainer pokemons:{s.load_pokemons_for_player(test_trainer.Name)}")
+        test_trainer_2:Trainer = s.load_trainer("null_player")
+        print(f"test_trainer:{test_trainer_2.Name}")
+        print(f"test_trainer pokemons:{s.execute_raw(f"SELECT * FROM Pokemons WHERE {DbService.POKEMON_OWNER_KEY}='{test_trainer_2.Name}'", expect_result=True)}")

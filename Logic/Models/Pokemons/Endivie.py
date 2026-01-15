@@ -12,6 +12,5 @@ class Endivie(Pokemon):
             Plant(),
             None,
             30,
-            30,
             Punch(self)
         )

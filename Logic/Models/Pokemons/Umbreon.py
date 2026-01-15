@@ -13,6 +13,5 @@ class Umbreon(Pokemon):
             Ghost(),
             Poison(),
             80,
-            80,
             Punch(self)
         )
