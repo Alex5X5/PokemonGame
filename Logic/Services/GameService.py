@@ -1,3 +1,4 @@
+import math
 import random
 import time
 from operator import attrgetter
@@ -39,14 +40,15 @@ class GameService:
     def player_is_worthy(self, event:PokemonDefeatedEvent) ->bool:
         return random.randint(1, event.looser.Level) < self.player.Reputiation
 
-    def max_random_enemy_xp(self) -> float:
-        return max(self.player.Pokemons, key=attrgetter('Level')).Experience
+    def max_random_enemy_xp(self) -> int:
+        return random.randint(0, int(math.floor(int(max(self.player.Pokemons, key=attrgetter('Level')).Experience)) * 1.4))
 
 
     def create_random_pokemon(self) -> Pokemon:
         pokemon_type:Type[Pokemon] = self.regristry_service.random_pokemon_type
         null_player:Trainer = self.db_service.load_trainer("null_player")
         pokemon:Any[Pokemon] = pokemon_type(0, null_player.Name)
+        pokemon.Experience = self.max_random_enemy_xp()
         self.db_service.insert_pokemon(pokemon, null_player)
         return pokemon
 
@@ -129,7 +131,7 @@ class GameService:
     def figth_random_pokemon(self):
         enemy_pokemon:Pokemon = self.create_random_pokemon()
         print(f"a {enemy_pokemon.display_str()} jumps out of the bushes")
-        time.sleep(2.0)
+        time.sleep(1.5)
         own_pokemon:Pokemon = self.choose_pokemon()
         time.sleep(2.0)
         is_own_turn:bool = random.random() > 0.5
@@ -142,16 +144,16 @@ class GameService:
             else:
                 damage_dealt_to_self += self.choose_random_attack(enemy_pokemon).execute(own_pokemon)
                 print(f"your pokemon has {own_pokemon.Health} left\n")
-            time.sleep(4)
+            time.sleep(2.0)
             if own_pokemon.is_down():
                 event:PokemonDefeatedEvent = PokemonDefeatedEvent(enemy_pokemon, own_pokemon, damage_dealt_to_enemy, damage_dealt_to_self)
                 self.on_own_pokemon_down(event)
-                time.sleep(4)
+                #time.sleep(2.0)
                 break
             if enemy_pokemon.is_down():
                 event:PokemonDefeatedEvent = PokemonDefeatedEvent(own_pokemon, enemy_pokemon, damage_dealt_to_self, damage_dealt_to_enemy)
                 self.on_enemy_pokemon_down(event)
-                time.sleep(4)
+                #time.sleep(2.0)
                 break
             is_own_turn:bool = not is_own_turn
 
@@ -196,12 +198,20 @@ class GameService:
     def on_player_rejects_pokemon(self, event:PokemonDefeatedEvent):
         print(f"you leave the pokemon behind")
 
+    def on_player_is_setup(self) -> None:
+        input_str:str = input(f"enter command")
+        if input_str == "db":
+            self.db_service.setup()
+        exit()
+
     def game_loop(self):
         #load a player if none is set
         if not self.player:
             player_name:str = ""
             while player_name == "null_player" or player_name == "":
                 player_name = input("enter your player name")
+                if player_name == "setup":
+                    self.on_player_is_setup()
             self.player = self.db_service.load_trainer(player_name)
         if len(self.player.Pokemons) == 0:
             self.give_start_pokemon()
